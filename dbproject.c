@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include <sys/stat.h>
 
 #define MAX_RECORDS 100
 #define MAX_FIELDS 20
@@ -113,49 +114,50 @@ void display_records(Table *db) {
     }
 }
 
-void display_sorted_column(char *header) {
+void display_sorted_column(Table *db, char *header) {
     printf("\nValues sorted by %s:\n", header);
 
-    for(int i=0;i<db1.record_count;i++) {
+    for(int i=0;i<db->record_count;i++) {
         printf("Record %d : %s\n",
                i+1,
-               get_value(&db1.records[i], header));
+               get_value(&db->records[i], header));
     }
 }
 
-void sort_records(char *header) {
-    clock_t start, end;
-    double cpu_time;
+void sort_records(Table *db, char *header) {
+    clock_t start = clock();
 
-    start = clock();     // timing starts here
-
-    for(int i=0;i<db1.record_count-1;i++) {
-        for(int j=i+1;j<db1.record_count;j++) {
-            if(strcmp(get_value(&db1.records[i], header),
-                      get_value(&db1.records[j], header)) > 0) {
-                Record temp = db1.records[i];
-                db1.records[i] = db1.records[j];
-                db1.records[j] = temp;
+    for(int i=0;i<db->record_count-1;i++) {
+        for(int j=i+1;j<db->record_count;j++) {
+            if(strcmp(get_value(&db->records[i], header),
+                      get_value(&db->records[j], header)) > 0) {
+                Record temp = db->records[i];
+                db->records[i] = db->records[j];
+                db->records[j] = temp;
             }
         }
     }
 
-    end = clock();       // timing ends here
-
-    cpu_time = (double)(end - start) / CLOCKS_PER_SEC;
+    clock_t end = clock();
 
     printf("Sorted by %s\n", header);
-    printf("Execution time: %f seconds\n", cpu_time);
+    printf("Execution time: %f seconds\n",
+           (double)(end-start)/CLOCKS_PER_SEC);
 
-    display_sorted_column(header);
+    display_records(db);
 }
 
-void insert_record() {
+void insert_record(Table *db) {
+    if(db->record_count == 0) {
+        printf("No database loaded.\n");
+        return;
+    }
+
     Record temp;
-    temp.field_count = db1.records[0].field_count;
+    temp.field_count = db->records[0].field_count;
 
     for(int i=0;i<temp.field_count;i++) {
-        strcpy(temp.fields[i].header, db1.records[0].fields[i].header);
+        strcpy(temp.fields[i].header, db->records[0].fields[i].header);
 
         printf("Enter %s: ", temp.fields[i].header);
         fgets(temp.fields[i].value, MAX_TEXT, stdin);
@@ -164,30 +166,31 @@ void insert_record() {
 
     clock_t start = clock();
 
-    db1.records[db1.record_count] = temp;
-    sprintf(db1.records[db1.record_count].filename, "record%d.txt", db1.record_count+1);
-    db1.record_count++;
+    db->records[db->record_count] = temp;
+    sprintf(db->records[db->record_count].filename,
+            "record%d.txt", db->record_count+1);
+    db->record_count++;
 
     clock_t end = clock();
 
-    double cpu_time = (double)(end-start)/CLOCKS_PER_SEC;
-
-    printf("Execution time: %f seconds\n", cpu_time);
+    printf("Record inserted.\n");
+    printf("Execution time: %f seconds\n",
+           (double)(end-start)/CLOCKS_PER_SEC);
 }
 
-void delete_record(int index) {
-    if(index < 0 || index >= db1.record_count) {
+void delete_record(Table *db, int index) {
+    if(index < 0 || index >= db->record_count) {
         printf("Invalid record number.\n");
         return;
     }
 
     clock_t start = clock();
 
-    for(int i=index;i<db1.record_count-1;i++) {
-        db1.records[i] = db1.records[i+1];
+    for(int i=index;i<db->record_count-1;i++) {
+        db->records[i] = db->records[i+1];
     }
 
-    db1.record_count--;
+    db->record_count--;
 
     clock_t end = clock();
 
@@ -196,47 +199,43 @@ void delete_record(int index) {
            (double)(end-start)/CLOCKS_PER_SEC);
 }
 
-void update_record(int index, char *header, char *newvalue) {
-    if(index < 0 || index >= db1.record_count) {
+void update_record(Table *db, int index, char *header, char *newvalue) {
+    if(index < 0 || index >= db->record_count) {
         printf("Invalid record number.\n");
         return;
     }
 
     clock_t start = clock();
 
-    for(int i=0;i<db1.records[index].field_count;i++) {
-        if(strcmp(db1.records[index].fields[i].header, header)==0) {
-            strcpy(db1.records[index].fields[i].value, newvalue);
+    for(int i=0;i<db->records[index].field_count;i++) {
+        if(strcmp(db->records[index].fields[i].header, header)==0) {
+            strcpy(db->records[index].fields[i].value, newvalue);
 
             clock_t end = clock();
-            double cpu_time = (double)(end-start)/CLOCKS_PER_SEC;
 
-            printf("Record updated in RAM.\n");
-            printf("Execution time: %f seconds\n", cpu_time);
+            printf("Record updated.\n");
+            printf("Execution time: %f seconds\n",
+                   (double)(end-start)/CLOCKS_PER_SEC);
             return;
         }
     }
 
-    clock_t end = clock();
-    double cpu_time = (double)(end-start)/CLOCKS_PER_SEC;
-
     printf("Header not found.\n");
-    printf("Execution time: %f seconds\n", cpu_time);
 }
-
-void save_files() {
+void save_files(Table *db) {
     char path[200];
 
-    for(int i=0;i<db1.record_count;i++) {
-        sprintf(path, "%s/%s", db1.folder, db1.records[i].filename);
+    for(int i=0;i<db->record_count;i++) {
+        sprintf(path, "%s/%s", db->folder, db->records[i].filename);
 
         FILE *fp = fopen(path, "w");
-        if(fp==NULL) continue;
+        if(fp == NULL)
+            continue;
 
-        for(int j=0;j<db1.records[i].field_count;j++) {
-            fprintf(fp,"%s: %s\n",
-                    db1.records[i].fields[j].header,
-                    db1.records[i].fields[j].value);
+        for(int j=0;j<db->records[i].field_count;j++) {
+            fprintf(fp, "%s: %s\n",
+                    db->records[i].fields[j].header,
+                    db->records[i].fields[j].value);
         }
 
         fclose(fp);
@@ -430,39 +429,93 @@ void project_records(char *header) {
 
 void run_query(char *query) {
     char header[100], value[100];
-
     clock_t start = clock();
 
     if(strncmp(query, "JOIN ", 5)==0) {
         sscanf(query + 5, "%s", header);
         inner_join(header);
     }
-
     else if(strncmp(query, "PROJECT ", 8)==0) {
         sscanf(query + 8, "%s", header);
         project_records(header);
     }
-
     else if(strncmp(query, "SELECT WHERE ", 13)==0) {
         sscanf(query + 13, "%[^=]=%s", header, value);
         select_records(header, value);
     }
 
+    /* ── ADD THESE NEW ONES ── */
+    else if(strncmp(query, "SORT ", 5)==0) {
+        sscanf(query + 5, "%s", header);
+        sort_records(&db1, header);
+        return; /* sort prints its own output */
+    }
+    else if(strncmp(query, "OUTERJOIN ", 10)==0) {
+        sscanf(query + 10, "%s", header);
+        outer_join(header);
+    }
+    else if(strncmp(query, "FULLJOIN ", 9)==0) {
+        sscanf(query + 9, "%s", header);
+        full_join(header);
+    }
     else {
         printf("Invalid query.\n");
+        printf("Valid: JOIN col | OUTERJOIN col | FULLJOIN col\n");
+        printf("       SELECT WHERE col=val | PROJECT col | SORT col\n");
         return;
     }
 
     clock_t end = clock();
-    double cpu_time = (double)(end-start)/CLOCKS_PER_SEC;
-
     display_result();
-
     printf("Query executed successfully.\n");
-    printf("Execution time: %f seconds\n", cpu_time);
+    printf("Execution time: %f seconds\n",
+           (double)(end-start)/CLOCKS_PER_SEC);
 }
 
+Table* choose_database() {
+    char input[20];
+    int choice;
 
+    printf("Select database (1 = DB1, 2 = DB2): ");
+    fgets(input, sizeof(input), stdin);
+    choice = atoi(input);
+
+    if(choice == 1)
+        return &db1;
+    else if(choice == 2)
+        return &db2;
+    else {
+        printf("Invalid database.\n");
+        return NULL;
+    }
+}
+void analyze_table(Table *db) {
+    if(db->record_count == 0) {
+        printf("No data loaded.\n");
+        return;
+    }
+
+    printf("\n===== TABLE ANALYSIS =====\n");
+    printf("Folder     : %s\n", db->folder);
+    printf("Total rows : %d\n", db->record_count);
+    printf("Columns found in first record:\n");
+
+    for(int i = 0; i < db->records[0].field_count; i++) {
+        /* Count how many records have this field filled */
+        int filled = 0;
+        for(int r = 0; r < db->record_count; r++) {
+            if(strlen(get_value(&db->records[r],
+                       db->records[0].fields[i].header)) > 0)
+                filled++;
+        }
+        printf("  [%d] %-15s — %d/%d records have this field\n",
+               i+1,
+               db->records[0].fields[i].header,
+               filled,
+               db->record_count);
+    }
+    printf("==========================\n");
+}
 
 int main() {
     setbuf(stdout, NULL);
@@ -476,17 +529,19 @@ int main() {
         printf("2. Load second folder (DB2)\n");
         printf("3. Display DB1\n");
         printf("4. Display DB2\n");
-        printf("5. Sort DB1 by header\n");
-        printf("6. Insert new record in DB1\n");
-        printf("7. Delete record from DB1\n");
-        printf("8. Update record in DB1\n");
-        printf("9. Save DB1 files\n");
+printf("5. Sort records\n");
+printf("6. Insert new record\n");
+printf("7. Delete record\n");
+printf("8. Update record\n");
+printf("9. Save database files\n");
         printf("10. Inner Join\n");
         printf("11. Outer Join\n");
         printf("12. Full Join\n");
         printf("13. Run Query Language\n");
         printf("14. Save join/query result\n");
         printf("15. Exit\n");
+        printf("16. Analyze DB1 (Q1a)\n");
+printf("17. Analyze DB2 (Q1a)\n");
         printf("Enter your choice: ");
 
         fgets(input, sizeof(input), stdin);
@@ -512,24 +567,46 @@ else if(choice == 3) {
 else if(choice == 4) {
     display_records(&db2);
 }
+// In the sort menu section, BEFORE asking for header:
 else if(choice == 5) {
+    Table *db = choose_database();
+    if(db == NULL) continue;
+
+    /* ADD THIS — show available columns */
+    if(db->record_count > 0) {
+        printf("Available columns: ");
+        for(int i=0; i<db->records[0].field_count; i++)
+            printf("%s  ", db->records[0].fields[i].header);
+        printf("\n");
+    }
+
     printf("Enter header name: ");
     fgets(input, sizeof(input), stdin);
     trim(input);
-    sort_records(input);
+    sort_records(db, input);
 }
 
 else if(choice == 6) {
-    insert_record();
+    Table *db = choose_database();
+    if(db == NULL) continue;
+
+    insert_record(db);
 }
 
 else if(choice == 7) {
+    Table *db = choose_database();
+    if(db == NULL) continue;
+
     printf("Enter record number: ");
     fgets(input, sizeof(input), stdin);
-    delete_record(atoi(input)-1);
+
+    delete_record(db, atoi(input)-1);
 }
 
 else if(choice == 8) {
+    Table *db = choose_database();
+    if(db == NULL) continue;
+
     char header[100], value[100];
 
     printf("Enter record number: ");
@@ -544,11 +621,14 @@ else if(choice == 8) {
     fgets(value, sizeof(value), stdin);
     trim(value);
 
-    update_record(index, header, value);
+    update_record(db, index, header, value);
 }
 
 else if(choice == 9) {
-    save_files();
+    Table *db = choose_database();
+    if(db == NULL) continue;
+
+    save_files(db);
 }
 
 else if(choice == 10) {
@@ -592,6 +672,8 @@ else if(choice == 14) {
 else if(choice == 15) {
     break;
 }
+    else if(choice == 16) { analyze_table(&db1); }
+else if(choice == 17) { analyze_table(&db2); }
         else {
             printf("Invalid choice.\n");
         }
