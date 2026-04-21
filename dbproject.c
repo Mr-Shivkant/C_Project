@@ -124,6 +124,61 @@ void sort_records(char *header) {
     printf("Sorted by %s\n", header);
 }
 
+void insert_record() {
+    if(db.record_count == 0) {
+        printf("Load data first.\n");
+        return;
+    }
+
+    Record *r = &db.records[db.record_count];
+    r->field_count = db.records[0].field_count;
+
+    for(int i=0;i<r->field_count;i++) {
+        strcpy(r->fields[i].header, db.records[0].fields[i].header);
+
+        printf("Enter %s: ", r->fields[i].header);
+        fgets(r->fields[i].value, MAX_TEXT, stdin);
+        trim(r->fields[i].value);
+    }
+
+    sprintf(r->filename, "record%d.txt", db.record_count + 1);
+    db.record_count++;
+
+    printf("Record inserted into RAM.\n");
+}
+
+void delete_record(int index) {
+    if(index < 0 || index >= db.record_count) {
+        printf("Invalid record number.\n");
+        return;
+    }
+
+    for(int i=index;i<db.record_count-1;i++) {
+        db.records[i] = db.records[i+1];
+    }
+
+    db.record_count--;
+
+    printf("Record deleted from RAM.\n");
+}
+
+void update_record(int index, char *header, char *newvalue) {
+    if(index < 0 || index >= db.record_count) {
+        printf("Invalid record number.\n");
+        return;
+    }
+
+    for(int i=0;i<db.records[index].field_count;i++) {
+        if(strcmp(db.records[index].fields[i].header, header)==0) {
+            strcpy(db.records[index].fields[i].value, newvalue);
+            printf("Record updated in RAM.\n");
+            return;
+        }
+    }
+
+    printf("Header not found.\n");
+}
+
 void save_files() {
     char path[200];
 
@@ -156,8 +211,11 @@ int main() {
         printf("1. Load records from folder\n");
         printf("2. Display records\n");
         printf("3. Sort by header\n");
-        printf("4. Save changes to files\n");
-        printf("5. Exit\n");
+        printf("4. Insert new record\n");
+        printf("5. Delete record\n");
+        printf("6. Update record\n");
+        printf("7. Save changes to files\n");
+        printf("8. Exit\n");
         printf("Enter your choice: ");
 
         fgets(input, sizeof(input), stdin);
@@ -179,9 +237,34 @@ int main() {
             sort_records(input);
         }
         else if(choice==4) {
-            save_files();
+            insert_record();
         }
         else if(choice==5) {
+            printf("Enter record number: ");
+            fgets(input,sizeof(input),stdin);
+            delete_record(atoi(input)-1);
+        } 
+        else if(choice==6) {
+            char header[100], value[100];
+
+            printf("Enter record number: ");
+            fgets(input,sizeof(input),stdin);
+            int index = atoi(input)-1;
+
+            printf("Enter header name: ");
+            fgets(header,sizeof(header),stdin);
+            trim(header);
+
+            printf("Enter new value: ");
+            fgets(value,sizeof(value),stdin);
+            trim(value);
+
+            update_record(index, header, value);
+        }
+        else if(choice==7) {
+            save_files();
+        }
+        else if(choice==8) {
             break;
         }
         else {
