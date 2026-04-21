@@ -474,18 +474,19 @@ int main() {
         printf("\n===== MINI DATABASE SYSTEM =====\n");
         printf("1. Load first folder (DB1)\n");
         printf("2. Load second folder (DB2)\n");
-        printf("3. Display first database\n");
-        printf("4. Sort DB1 by header\n");
-        printf("5. Insert new record in DB1\n");
-        printf("6. Delete record from DB1\n");
-        printf("7. Update record in DB1\n");
-        printf("8. Save DB1 files\n");
-        printf("9. Inner Join\n");
-        printf("10. Outer Join\n");
-        printf("11. Full Join\n");
-        printf("12. Run Query Language\n");
-        printf("13. Save join/query result\n");
-        printf("14. Exit\n");
+        printf("3. Display DB1\n");
+        printf("4. Display DB2\n");
+        printf("5. Sort DB1 by header\n");
+        printf("6. Insert new record in DB1\n");
+        printf("7. Delete record from DB1\n");
+        printf("8. Update record in DB1\n");
+        printf("9. Save DB1 files\n");
+        printf("10. Inner Join\n");
+        printf("11. Outer Join\n");
+        printf("12. Full Join\n");
+        printf("13. Run Query Language\n");
+        printf("14. Save join/query result\n");
+        printf("15. Exit\n");
         printf("Enter your choice: ");
 
         fgets(input, sizeof(input), stdin);
@@ -508,25 +509,27 @@ else if(choice == 2) {
 else if(choice == 3) {
     display_records(&db1);
 }
-
 else if(choice == 4) {
+    display_records(&db2);
+}
+else if(choice == 5) {
     printf("Enter header name: ");
     fgets(input, sizeof(input), stdin);
     trim(input);
     sort_records(input);
 }
 
-else if(choice == 5) {
+else if(choice == 6) {
     insert_record();
 }
 
-else if(choice == 6) {
+else if(choice == 7) {
     printf("Enter record number: ");
     fgets(input, sizeof(input), stdin);
     delete_record(atoi(input)-1);
 }
 
-else if(choice == 7) {
+else if(choice == 8) {
     char header[100], value[100];
 
     printf("Enter record number: ");
@@ -544,11 +547,11 @@ else if(choice == 7) {
     update_record(index, header, value);
 }
 
-else if(choice == 8) {
+else if(choice == 9) {
     save_files();
 }
 
-else if(choice == 9) {
+else if(choice == 10) {
     printf("Enter common header: ");
     fgets(input, sizeof(input), stdin);
     trim(input);
@@ -556,7 +559,7 @@ else if(choice == 9) {
     display_result();
 }
 
-else if(choice == 10) {
+else if(choice == 11) {
     printf("Enter common header: ");
     fgets(input, sizeof(input), stdin);
     trim(input);
@@ -564,7 +567,7 @@ else if(choice == 10) {
     display_result();
 }
 
-else if(choice == 11) {
+else if(choice == 12) {
     printf("Enter common header: ");
     fgets(input, sizeof(input), stdin);
     trim(input);
@@ -572,21 +575,21 @@ else if(choice == 11) {
     display_result();
 }
 
-else if(choice == 12) {
+else if(choice == 13) {
     printf("Enter query: ");
     fgets(input, sizeof(input), stdin);
     trim(input);
     run_query(input);
 }
 
-else if(choice == 13) {
+else if(choice == 14) {
     printf("Enter folder to save result: ");
     fgets(input, sizeof(input), stdin);
     trim(input);
     save_result(input);
 }
 
-else if(choice == 14) {
+else if(choice == 15) {
     break;
 }
         else {
