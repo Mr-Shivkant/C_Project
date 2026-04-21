@@ -122,6 +122,7 @@ void sort_records(char *header) {
     }
 
     printf("Sorted by %s\n", header);
+    display_records();
 }
 
 void insert_record() {
