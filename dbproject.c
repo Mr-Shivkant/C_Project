@@ -400,14 +400,23 @@ void save_result(char *folder) {
 void select_records(char *header, char *value) {
     result_db.record_count = 0;
 
+    /* Trim spaces from header and value just in case */
+    while(header[0] == ' ') memmove(header, header+1, strlen(header));
+    while(value[0]  == ' ') memmove(value,  value+1,  strlen(value));
+
     for(int i=0;i<db1.record_count;i++) {
         if(strcmp(get_value(&db1.records[i], header), value)==0) {
             result_db.records[result_db.record_count++] = db1.records[i];
         }
     }
 
-    printf("Selection completed.\n");
+    if(result_db.record_count == 0)
+        printf("No matching records found.\n");
+    else
+        printf("Selection completed. %d record(s) found.\n",
+               result_db.record_count);
 }
+
 void project_records(char *header) {
     result_db.record_count = 0;
 
@@ -434,40 +443,48 @@ void run_query(char *query) {
     if(strncmp(query, "JOIN ", 5)==0) {
         sscanf(query + 5, "%s", header);
         inner_join(header);
+        display_result();
     }
     else if(strncmp(query, "PROJECT ", 8)==0) {
         sscanf(query + 8, "%s", header);
         project_records(header);
+        display_result();
     }
     else if(strncmp(query, "SELECT WHERE ", 13)==0) {
         sscanf(query + 13, "%[^=]=%s", header, value);
         select_records(header, value);
+        display_result();          /* ← THIS shows the output */
     }
-
-    /* ── ADD THESE NEW ONES ── */
     else if(strncmp(query, "SORT ", 5)==0) {
         sscanf(query + 5, "%s", header);
         sort_records(&db1, header);
-        return; /* sort prints its own output */
+        return;
     }
     else if(strncmp(query, "OUTERJOIN ", 10)==0) {
         sscanf(query + 10, "%s", header);
         outer_join(header);
+        display_result();
     }
     else if(strncmp(query, "FULLJOIN ", 9)==0) {
         sscanf(query + 9, "%s", header);
         full_join(header);
+        display_result();
     }
     else {
         printf("Invalid query.\n");
-        printf("Valid: JOIN col | OUTERJOIN col | FULLJOIN col\n");
-        printf("       SELECT WHERE col=val | PROJECT col | SORT col\n");
+        printf("Valid queries:\n");
+        printf("  JOIN col\n");
+        printf("  OUTERJOIN col\n");
+        printf("  FULLJOIN col\n");
+        printf("  SELECT WHERE col=val\n");
+        printf("  PROJECT col\n");
+        printf("  SORT col\n");
         return;
     }
 
     clock_t end = clock();
-    display_result();
     printf("Query executed successfully.\n");
+    printf("Total result records: %d\n", result_db.record_count);
     printf("Execution time: %f seconds\n",
            (double)(end-start)/CLOCKS_PER_SEC);
 }
