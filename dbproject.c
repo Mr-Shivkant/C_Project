@@ -215,14 +215,14 @@ void save_files() {
 /* menu */
 int main() {
     int choice, index;
-    char temp[20];
+    char temp[50];
     char folder[100], header[100], value[100];
 
     while(1) {
         printf("\n========== MINI DATABASE SYSTEM ==========\n");
         printf("1. Load records from folder into RAM\n");
-        printf("3. Sort records by selected header\n");
         printf("2. Display all records from RAM\n");
+        printf("3. Sort records by selected header\n");
         printf("4. Insert a new record into RAM\n");
         printf("5. Delete an existing record from RAM\n");
         printf("6. Update a field in a record\n");
@@ -230,13 +230,22 @@ int main() {
         printf("8. Exit program\n");
         printf("==========================================\n");
         printf("Enter your choice: ");
+        fflush(stdout);
 
-        fgets(temp, sizeof(temp), stdin);
+        if(fgets(temp, sizeof(temp), stdin) == NULL)
+            continue;
+
+        trim(temp);
+
+        if(strlen(temp) == 0)
+            continue;
+
         choice = atoi(temp);
 
         switch(choice) {
             case 1:
-                printf("Folder: ");
+                printf("Enter folder name: ");
+                fflush(stdout);
                 fgets(folder, sizeof(folder), stdin);
                 trim(folder);
                 load_folder(folder);
@@ -247,7 +256,8 @@ int main() {
                 break;
 
             case 3:
-                printf("Header: ");
+                printf("Enter header for sorting: ");
+                fflush(stdout);
                 fgets(header,sizeof(header),stdin);
                 trim(header);
                 sort_records(header);
@@ -258,22 +268,26 @@ int main() {
                 break;
 
             case 5:
-                printf("Record number: ");
+                printf("Enter record number to delete: ");
+                fflush(stdout);
                 fgets(temp,sizeof(temp),stdin);
                 index = atoi(temp);
                 delete_record(index-1);
                 break;
 
             case 6:
-                printf("Record number: ");
+                printf("Enter record number to update: ");
+                fflush(stdout);
                 fgets(temp,sizeof(temp),stdin);
                 index = atoi(temp);
 
-                printf("Header: ");
+                printf("Enter header name: ");
+                fflush(stdout);
                 fgets(header,sizeof(header),stdin);
                 trim(header);
 
-                printf("New value: ");
+                printf("Enter new value: ");
+                fflush(stdout);
                 fgets(value,sizeof(value),stdin);
                 trim(value);
 
@@ -285,10 +299,11 @@ int main() {
                 break;
 
             case 8:
+                printf("Exiting program...\n");
                 return 0;
 
             default:
-                printf("Invalid choice\n");
+                printf("Invalid choice. Please enter 1 to 8.\n");
         }
     }
 }
