@@ -144,7 +144,7 @@ void sort_records(Table *db, char *header) {
     printf("Execution time: %f seconds\n",
            (double)(end-start)/CLOCKS_PER_SEC);
 
-    display_records(db);
+    display_sorted_column(db, header);
 }
 
 void insert_record(Table *db) {
