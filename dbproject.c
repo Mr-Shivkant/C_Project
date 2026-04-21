@@ -103,6 +103,11 @@ void load_folder(char *folder) {
 
 /* display all records */
 void display() {
+    if(db.record_count == 0) {
+        printf("No data loaded. Please load folder first.\n");
+        return;
+    }
+
     for(int i=0;i<db.record_count;i++) {
         printf("\nRecord %d:\n", i+1);
 
