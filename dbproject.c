@@ -109,6 +109,15 @@ void display_records() {
     }
 }
 
+void display_sorted_column(char *header) {
+    printf("\nValues sorted by %s:\n", header);
+
+    for(int i=0;i<db.record_count;i++) {
+        printf("Record %d : %s\n", i + 1,
+               get_value(&db.records[i], header));
+    }
+}
+
 void sort_records(char *header) {
     for(int i=0;i<db.record_count-1;i++) {
         for(int j=i+1;j<db.record_count;j++) {
@@ -122,7 +131,7 @@ void sort_records(char *header) {
     }
 
     printf("Sorted by %s\n", header);
-    display_records();
+    display_sorted_column(header);
 }
 
 void insert_record() {
