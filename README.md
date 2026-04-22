@@ -39,9 +39,31 @@ Advanced Functionality
 
 🏗️ System Architecture
 
-The system uses a flexible architecture to remain generic.
+The system follows a Generic Metadata-Driven Architecture to handle any semi-structured dataset.
 
-    Note: We utilized [mention your chosen method: e.g., Linked Lists/Hash Tables with Void Pointers or Recompilation strategies] to ensure the system adapts to different headers and data types at runtime.
+    Generic Data Modeling:
+
+        Uses Field, Record, and Table structures.
+
+        Uses Key-Value mapping instead of hardcoded columns, allowing the system to process any header at runtime.
+
+    RAM-Based Processing:
+
+        All operations (Sorting, Joins, Queries) are performed in Main Memory (RAM) for high speed.
+
+        Disk I/O is used only for initial loading and final saving.
+
+    Modular Engines:
+
+        Join Engine: Executes Inner, Left, Right, and Full Joins using nested-loop logic.
+
+        SSQL Parser: A custom shell that tokenizes and executes SQL-like commands.
+
+        Telemetry: Integrated <time.h> to measure exact execution time in milliseconds (ms).
+
+    Data Persistence:
+
+        Uses a Flat-File System where data is stored as human-readable .txt files in a Key: Value format.
 
 📖 How to Run
 
