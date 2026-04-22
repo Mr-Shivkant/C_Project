@@ -336,16 +336,21 @@ void save_result_to(char *folder) {
 void do_join(Table *t1, Table *t2, char *on_col, int type) {
     memset(&result_db, 0, sizeof(Table));
 
-    /* find join column indices */
     int c1 = -1, c2 = -1;
+
     if (t1->record_count > 0)
         for (int j = 0; j < t1->records[0].field_count; j++)
-            if (str_eq_ci(t1->records[0].fields[j].header, on_col))
-            { c1 = j; break; }
+            if (str_eq_ci(t1->records[0].fields[j].header, on_col)) {
+                c1 = j;
+                break;
+            }
+
     if (t2->record_count > 0)
         for (int j = 0; j < t2->records[0].field_count; j++)
-            if (str_eq_ci(t2->records[0].fields[j].header, on_col))
-            { c2 = j; break; }
+            if (str_eq_ci(t2->records[0].fields[j].header, on_col)) {
+                c2 = j;
+                break;
+            }
 
     if (c1 < 0 || c2 < 0) {
         printf("  [ERROR] Column '%s' not found in both tables.\n", on_col);
@@ -357,72 +362,102 @@ void do_join(Table *t1, Table *t2, char *on_col, int type) {
 
     for (int i = 0; i < t1->record_count; i++) {
         int matched = 0;
+
         for (int k = 0; k < t2->record_count; k++) {
             if (strcmp(t1->records[i].fields[c1].value,
-                       t2->records[k].fields[c2].value) != 0) continue;
+                       t2->records[k].fields[c2].value) != 0)
+                continue;
 
-            /* matched: copy t1 fields */
             Record *r = &result_db.records[result_db.record_count];
             r->field_count = 0;
-            for (int j = 0; j < t1->records[i].field_count; j++)
-                r->fields[r->field_count++] = t1->records[i].fields[j];
-            /* copy t2 fields (skip duplicate join column) */
-            for (int j = 0; j < t2->records[k].field_count; j++) {
-                if (j == c2) continue;
-                r->fields[r->field_count++] = t2->records[k].fields[j];
+
+            /* LEFT table data */
+            for (int j = 0; j < t1->records[i].field_count; j++) {
+                sprintf(r->fields[r->field_count].header, "L_%s",
+                        t1->records[i].fields[j].header);
+                strcpy(r->fields[r->field_count].value,
+                       t1->records[i].fields[j].value);
+                r->field_count++;
             }
+
+            /* RIGHT table data */
+            for (int j = 0; j < t2->records[k].field_count; j++) {
+                sprintf(r->fields[r->field_count].header, "R_%s",
+                        t2->records[k].fields[j].header);
+                strcpy(r->fields[r->field_count].value,
+                       t2->records[k].fields[j].value);
+                r->field_count++;
+            }
+
             result_db.record_count++;
             matched = 1;
             used2[k] = 1;
         }
 
-        /* left / full: keep unmatched t1 rows with NULL for t2 columns */
+        /* LEFT or FULL join unmatched rows */
         if (!matched && (type == 1 || type == 3)) {
             Record *r = &result_db.records[result_db.record_count];
             r->field_count = 0;
-            for (int j = 0; j < t1->records[i].field_count; j++)
-                r->fields[r->field_count++] = t1->records[i].fields[j];
-            if (t2->record_count > 0)
-                for (int j = 0; j < t2->records[0].field_count; j++) {
-                    if (j == c2) continue;
-                    strncpy(r->fields[r->field_count].header,
-                            t2->records[0].fields[j].header, MAX_TEXT-1);
-                    strcpy(r->fields[r->field_count].value, "NULL");
-                    r->field_count++;
-                }
+
+            /* LEFT table actual values */
+            for (int j = 0; j < t1->records[i].field_count; j++) {
+                sprintf(r->fields[r->field_count].header, "L_%s",
+                        t1->records[i].fields[j].header);
+                strcpy(r->fields[r->field_count].value,
+                       t1->records[i].fields[j].value);
+                r->field_count++;
+            }
+
+            /* RIGHT table NULL values */
+            for (int j = 0; j < t2->records[0].field_count; j++) {
+                sprintf(r->fields[r->field_count].header, "R_%s",
+                        t2->records[0].fields[j].header);
+                strcpy(r->fields[r->field_count].value, "NULL");
+                r->field_count++;
+            }
+
             result_db.record_count++;
         }
     }
 
-    /* right / full: keep unmatched t2 rows with NULL for t1 columns */
+    /* RIGHT or FULL join unmatched rows */
     if (type == 2 || type == 3) {
         for (int k = 0; k < t2->record_count; k++) {
-            if (used2[k]) continue;
+            if (used2[k])
+                continue;
+
             Record *r = &result_db.records[result_db.record_count];
             r->field_count = 0;
-            if (t1->record_count > 0)
-                for (int j = 0; j < t1->records[0].field_count; j++) {
-                    strncpy(r->fields[r->field_count].header,
-                            t1->records[0].fields[j].header, MAX_TEXT-1);
-                    strcpy(r->fields[r->field_count].value,
-                           j == c1 ? t2->records[k].fields[c2].value : "NULL");
-                    r->field_count++;
-                }
-            for (int j = 0; j < t2->records[k].field_count; j++) {
-                if (j == c2) continue;
-                r->fields[r->field_count++] = t2->records[k].fields[j];
+
+            /* LEFT table NULL values */
+            for (int j = 0; j < t1->records[0].field_count; j++) {
+                sprintf(r->fields[r->field_count].header, "L_%s",
+                        t1->records[0].fields[j].header);
+                strcpy(r->fields[r->field_count].value, "NULL");
+                r->field_count++;
             }
+
+            /* RIGHT table actual values */
+            for (int j = 0; j < t2->records[k].field_count; j++) {
+                sprintf(r->fields[r->field_count].header, "R_%s",
+                        t2->records[k].fields[j].header);
+                strcpy(r->fields[r->field_count].value,
+                       t2->records[k].fields[j].value);
+                r->field_count++;
+            }
+
             result_db.record_count++;
         }
     }
 
-    char *names[] = {"Inner","Left","Right","Full"};
+    char *names[] = {"Inner", "Left", "Right", "Full"};
+
     printf("  [TIME] %s Join on '%s': %.4f ms | Result: %d rows\n",
-           names[type], on_col,
-           (double)(clock()-start)/CLOCKS_PER_SEC*1000.0,
+           names[type],
+           on_col,
+           (double)(clock() - start) / CLOCKS_PER_SEC * 1000.0,
            result_db.record_count);
 }
-
 /* ══════════════════════════════════════════════════════
    QUERY OPERATIONS
    ══════════════════════════════════════════════════════ */
