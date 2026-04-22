@@ -338,6 +338,7 @@ void do_join(Table *t1, Table *t2, char *on_col, int type) {
 
     int c1 = -1, c2 = -1;
 
+    /* find join column index in t1 */
     if (t1->record_count > 0)
         for (int j = 0; j < t1->records[0].field_count; j++)
             if (str_eq_ci(t1->records[0].fields[j].header, on_col)) {
@@ -345,6 +346,7 @@ void do_join(Table *t1, Table *t2, char *on_col, int type) {
                 break;
             }
 
+    /* find join column index in t2 */
     if (t2->record_count > 0)
         for (int j = 0; j < t2->records[0].field_count; j++)
             if (str_eq_ci(t2->records[0].fields[j].header, on_col)) {
@@ -371,22 +373,14 @@ void do_join(Table *t1, Table *t2, char *on_col, int type) {
             Record *r = &result_db.records[result_db.record_count];
             r->field_count = 0;
 
-            /* LEFT table data */
-            for (int j = 0; j < t1->records[i].field_count; j++) {
-                sprintf(r->fields[r->field_count].header, "L_%s",
-                        t1->records[i].fields[j].header);
-                strcpy(r->fields[r->field_count].value,
-                       t1->records[i].fields[j].value);
-                r->field_count++;
-            }
+            /* copy table1 fields */
+            for (int j = 0; j < t1->records[i].field_count; j++)
+                r->fields[r->field_count++] = t1->records[i].fields[j];
 
-            /* RIGHT table data */
+            /* copy table2 fields except duplicate join column */
             for (int j = 0; j < t2->records[k].field_count; j++) {
-                sprintf(r->fields[r->field_count].header, "R_%s",
-                        t2->records[k].fields[j].header);
-                strcpy(r->fields[r->field_count].value,
-                       t2->records[k].fields[j].value);
-                r->field_count++;
+                if (j == c2) continue;
+                r->fields[r->field_count++] = t2->records[k].fields[j];
             }
 
             result_db.record_count++;
@@ -394,24 +388,20 @@ void do_join(Table *t1, Table *t2, char *on_col, int type) {
             used2[k] = 1;
         }
 
-        /* LEFT or FULL join unmatched rows */
+        /* LEFT or FULL join unmatched rows from t1 */
         if (!matched && (type == 1 || type == 3)) {
             Record *r = &result_db.records[result_db.record_count];
             r->field_count = 0;
 
-            /* LEFT table actual values */
-            for (int j = 0; j < t1->records[i].field_count; j++) {
-                sprintf(r->fields[r->field_count].header, "L_%s",
-                        t1->records[i].fields[j].header);
-                strcpy(r->fields[r->field_count].value,
-                       t1->records[i].fields[j].value);
-                r->field_count++;
-            }
+            /* copy t1 row */
+            for (int j = 0; j < t1->records[i].field_count; j++)
+                r->fields[r->field_count++] = t1->records[i].fields[j];
 
-            /* RIGHT table NULL values */
+            /* fill t2 columns with NULL */
             for (int j = 0; j < t2->records[0].field_count; j++) {
-                sprintf(r->fields[r->field_count].header, "R_%s",
-                        t2->records[0].fields[j].header);
+                if (j == c2) continue;
+                strcpy(r->fields[r->field_count].header,
+                       t2->records[0].fields[j].header);
                 strcpy(r->fields[r->field_count].value, "NULL");
                 r->field_count++;
             }
@@ -420,30 +410,27 @@ void do_join(Table *t1, Table *t2, char *on_col, int type) {
         }
     }
 
-    /* RIGHT or FULL join unmatched rows */
+    /* RIGHT or FULL join unmatched rows from t2 */
     if (type == 2 || type == 3) {
         for (int k = 0; k < t2->record_count; k++) {
-            if (used2[k])
-                continue;
+            if (used2[k]) continue;
 
             Record *r = &result_db.records[result_db.record_count];
             r->field_count = 0;
 
-            /* LEFT table NULL values */
+            /* fill t1 columns with NULL */
             for (int j = 0; j < t1->records[0].field_count; j++) {
-                sprintf(r->fields[r->field_count].header, "L_%s",
-                        t1->records[0].fields[j].header);
-                strcpy(r->fields[r->field_count].value, "NULL");
+                strcpy(r->fields[r->field_count].header,
+                       t1->records[0].fields[j].header);
+                strcpy(r->fields[r->field_count].value,
+                       j == c1 ? t2->records[k].fields[c2].value : "NULL");
                 r->field_count++;
             }
 
-            /* RIGHT table actual values */
+            /* copy t2 row except join column */
             for (int j = 0; j < t2->records[k].field_count; j++) {
-                sprintf(r->fields[r->field_count].header, "R_%s",
-                        t2->records[k].fields[j].header);
-                strcpy(r->fields[r->field_count].value,
-                       t2->records[k].fields[j].value);
-                r->field_count++;
+                if (j == c2) continue;
+                r->fields[r->field_count++] = t2->records[k].fields[j];
             }
 
             result_db.record_count++;
